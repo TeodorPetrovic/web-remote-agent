@@ -131,11 +131,16 @@ export class DOMReconstructor {
     const doc = this._getDoc();
     if (!doc) return;
 
-    // Write the remote page's HTML into the iframe. We strip scripts
-    // for security unless explicitly allowed.
+    // Always strip <script> blocks — they would re-initialise the agent
+    // and create duplicate WebSocket connections inside the iframe.
     let html = snapshot.html;
+    html = this._stripScriptTags(html);
+
+    // Inline event handlers (onclick etc.) are only kept when the caller
+    // explicitly opts in with allowScripts (and the parent has added
+    // the allow-scripts sandbox token).
     if (!this._allowScripts) {
-      html = this._stripScripts(html);
+      html = this._stripInlineHandlers(html);
     }
 
     doc.open();
@@ -185,17 +190,25 @@ export class DOMReconstructor {
     }
   }
 
-  _stripScripts(html) {
-    // Remove <script> tags and inline event handlers for security.
-    // The regex handles both single- and double-quoted attribute values.
+  /**
+   * Strip <script> blocks and javascript: URLs from the HTML.
+   * This is ALWAYS called — we never want the reconstructed page
+   * running block-level scripts (they would re-init the agent).
+   */
+  _stripScriptTags(html) {
     return html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      // Double-quoted on* handlers: onclick="code"
-      .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
-      // Single-quoted on* handlers: onclick='code'
-      .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
-      // Unquoted on* handlers: onclick=code
-      .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
       .replace(/javascript\s*:/gi, 'blocked:');
+  }
+
+  /**
+   * Strip inline event handlers (onclick, onload, etc.) from the HTML.
+   * Only called when scripts are not explicitly allowed.
+   */
+  _stripInlineHandlers(html) {
+    return html
+      .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+      .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+      .replace(/\son\w+\s*=\s*[^\s>]+/gi, '');
   }
 }

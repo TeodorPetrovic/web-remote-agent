@@ -16,42 +16,80 @@
     }
     header {
       background: #16213e;
-      padding: 0.75rem 1.5rem;
+      padding: 0.5rem 1rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid #0f3460;
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
-    header h1 { font-size: 1.15rem; }
-    .controls { display: flex; gap: 0.75rem; align-items: center; }
-    .controls input {
-      padding: 0.35rem 0.6rem;
+    header h1 { font-size: 1.1rem; white-space: nowrap; }
+    .controls { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .controls input[type="text"] {
+      padding: 0.3rem 0.5rem;
       border: 1px solid #0f3460;
       border-radius: 4px;
       background: #1a1a2e;
       color: #e0e0e0;
-      font-size: 0.85rem;
-      width: 200px;
+      font-size: 0.8rem;
+      width: 180px;
     }
-    .controls button, .controls label {
-      padding: 0.35rem 0.85rem;
+    .controls button {
+      padding: 0.3rem 0.6rem;
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+    .controls select {
+      padding: 0.3rem 0.4rem;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      font-size: 0.8rem;
     }
     .btn-connect { background: #4caf50; color: #fff; }
-    .btn-connect:hover { background: #43a047; }
     .btn-disconnect { background: #f44336; color: #fff; }
-    .btn-disconnect:hover { background: #e53935; }
+    .btn-record { background: #e91e63; color: #fff; }
+    .btn-record.active { background: #f44336; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+    .btn-play { background: #4caf50; color: #fff; }
+    .btn-pause { background: #ff9800; color: #fff; }
+    .btn-stop { background: #f44336; color: #fff; }
+    .btn-export { background: #2196f3; color: #fff; }
+    .btn-import { background: #9c27b0; color: #fff; }
     .interaction-toggle {
+      display: flex; align-items: center; gap: 0.3rem;
+      font-size: 0.8rem; cursor: pointer; user-select: none;
+    }
+
+    /* --- toolbar --- */
+    .toolbar {
+      background: #16213e;
+      padding: 0.35rem 1rem;
+      border-bottom: 1px solid #0f3460;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+    }
+    .toolbar-group {
       display: flex;
       align-items: center;
       gap: 0.35rem;
-      font-size: 0.85rem;
-      cursor: pointer;
-      user-select: none;
     }
+    .toolbar-group label { font-size: 0.75rem; color: #888; margin-right: 0.25rem; }
+    .toolbar .time-display { font-family: monospace; min-width: 80px; text-align: center; }
+    .toolbar input[type="range"] {
+      width: 180px; accent-color: #4caf50;
+    }
+    .toolbar button { font-size: 0.75rem; padding: 0.2rem 0.45rem; }
+
+    /* --- viewer --- */
     .viewer-container {
       flex: 1;
       position: relative;
@@ -59,58 +97,79 @@
       overflow: hidden;
     }
     .viewer-container iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      background: #fff;
+      width: 100%; height: 100%; border: none; background: #fff;
     }
     .placeholder {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #666;
-      font-size: 1.2rem;
-      pointer-events: none;
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: #666; font-size: 1.2rem; pointer-events: none;
     }
+
+    /* --- footer --- */
     .status-bar {
-      padding: 0.4rem 1.5rem;
+      padding: 0.3rem 1rem;
       background: #16213e;
       border-top: 1px solid #0f3460;
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.8rem;
-      color: #888;
+      display: flex; justify-content: space-between;
+      font-size: 0.75rem; color: #888;
     }
     .status-bar .connected { color: #4caf50; }
     .status-bar .disconnected { color: #f44336; }
+    .status-bar .recording { color: #e91e63; }
     .log-panel {
-      max-height: 150px;
-      overflow-y: auto;
-      background: #0d0d1a;
-      padding: 0.5rem 1rem;
-      font-family: monospace;
-      font-size: 0.75rem;
-      color: #aaa;
+      max-height: 120px; overflow-y: auto;
+      background: #0d0d1a; padding: 0.35rem 1rem;
+      font-family: monospace; font-size: 0.7rem; color: #aaa;
       border-top: 1px solid #0f3460;
     }
-    .log-panel .log-line { padding: 2px 0; }
+    .log-panel .log-line { padding: 1px 0; }
   </style>
 </head>
 <body>
   <header>
-    <h1>🖥️ Admin Viewer — Web Remote Agent</h1>
+    <h1>🖥️ Admin Viewer</h1>
     <div class="controls">
       <input type="text" id="sessionIdInput" placeholder="Session ID">
       <button class="btn-connect" id="connectBtn">Connect</button>
       <button class="btn-disconnect" id="disconnectBtn" disabled>Disconnect</button>
       <label class="interaction-toggle">
-        <input type="checkbox" id="interactionToggle">
-        Interaction Mode
+        <input type="checkbox" id="interactionToggle"> Interact
       </label>
     </div>
   </header>
+
+  <!-- Recording & Playback toolbar -->
+  <div class="toolbar" id="toolbar">
+    <!-- Recording -->
+    <div class="toolbar-group">
+      <label>📼</label>
+      <button class="btn-record" id="recordBtn" disabled>⏺ Rec</button>
+      <button class="btn-export" id="exportBtn" disabled>⬇ Export</button>
+      <button class="btn-import" id="importBtn">⬆ Import</button>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+    </div>
+    <!-- Playback -->
+    <div class="toolbar-group">
+      <label>▶</label>
+      <button class="btn-play" id="playBtn" disabled>Play</button>
+      <button class="btn-pause" id="pauseBtn" disabled>Pause</button>
+      <button class="btn-stop" id="stopBtn" disabled>Stop</button>
+      <select id="speedSelect">
+        <option value="0.25">0.25x</option>
+        <option value="0.5">0.5x</option>
+        <option value="1" selected>1x</option>
+        <option value="2">2x</option>
+        <option value="4">4x</option>
+      </select>
+    </div>
+    <!-- Seek bar -->
+    <div class="toolbar-group" style="flex:1;min-width:150px;">
+      <input type="range" id="seekBar" min="0" max="100" value="0" style="width:100%;">
+    </div>
+    <div class="toolbar-group">
+      <span class="time-display" id="timeDisplay">00:00 / 00:00</span>
+    </div>
+  </div>
 
   <div class="viewer-container" id="viewerContainer">
     <div class="placeholder" id="placeholder">
@@ -120,6 +179,8 @@
 
   <div class="status-bar">
     <span id="connectionStatus" class="disconnected">● Disconnected</span>
+    <span id="recordingStatus"></span>
+    <span id="playbackStatus"></span>
     <span id="sessionInfo">No active session</span>
     <span id="msgCount">Messages: 0</span>
   </div>
@@ -129,8 +190,9 @@
   </div>
 
   <script type="module">
-    import { ViewerAgent } from '../src/index.js';
+    import { ViewerAgent, SessionRecorder, SessionPlayer } from '../src/index.js';
 
+    // ---- DOM refs ----
     const sessionIdInput = document.getElementById('sessionIdInput');
     const connectBtn = document.getElementById('connectBtn');
     const disconnectBtn = document.getElementById('disconnectBtn');
@@ -138,13 +200,34 @@
     const viewerContainer = document.getElementById('viewerContainer');
     const placeholder = document.getElementById('placeholder');
     const connectionStatus = document.getElementById('connectionStatus');
+    const recordingStatus = document.getElementById('recordingStatus');
+    const playbackStatus = document.getElementById('playbackStatus');
     const sessionInfo = document.getElementById('sessionInfo');
     const msgCount = document.getElementById('msgCount');
     const logPanel = document.getElementById('logPanel');
 
-    let viewer = null;
-    let messageCount = 0;
+    // Recording controls
+    const recordBtn = document.getElementById('recordBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const importFile = document.getElementById('importFile');
 
+    // Playback controls
+    const playBtn = document.getElementById('playBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const speedSelect = document.getElementById('speedSelect');
+    const seekBar = document.getElementById('seekBar');
+    const timeDisplay = document.getElementById('timeDisplay');
+
+    // ---- State ----
+    let viewer = null;
+    let recorder = null;
+    let player = null;
+    let messageCount = 0;
+    let seekBarDragging = false;
+
+    // ---- Helpers ----
     function log(msg) {
       const line = document.createElement('div');
       line.className = 'log-line';
@@ -158,23 +241,180 @@
       msgCount.textContent = `Messages: ${messageCount}`;
     }
 
-    connectBtn.addEventListener('click', async () => {
-      const sid = sessionIdInput.value.trim();
-      if (!sid) {
-        log('⚠️ Please enter a Session ID');
+    function formatTime(ms) {
+      const s = Math.floor(ms / 1000);
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+    }
+
+    // ---- Recording ----
+    recordBtn.addEventListener('click', () => {
+      if (!viewer || !viewer._connection) return;
+
+      if (recorder && recorder.isRecording) {
+        recorder.stop();
+        recordBtn.textContent = '⏺ Rec';
+        recordBtn.classList.remove('active');
+        recordingStatus.textContent = '';
+        exportBtn.disabled = false;
+        enablePlayback();
+        log(`⏹ Recording stopped (${recorder.frameCount} frames, ${formatTime(recorder.duration)})`);
+      } else {
+        if (!recorder) recorder = new SessionRecorder();
+        recorder.start(sessionIdInput.value.trim());
+        recordBtn.textContent = '⏹ Stop';
+        recordBtn.classList.add('active');
+        recordingStatus.textContent = '🔴 Recording';
+        recordingStatus.className = 'recording';
+        exportBtn.disabled = true;
+        disablePlayback();
+        log('⏺ Recording started');
+      }
+    });
+
+    exportBtn.addEventListener('click', () => {
+      if (!recorder || recorder.frameCount === 0) {
+        log('⚠️ Nothing to export');
         return;
       }
+      recorder.download();
+      log(`📥 Exported ${recorder.frameCount} frames`);
+    });
 
-      if (viewer) {
-        viewer.stop();
-        viewer = null;
+    importBtn.addEventListener('click', () => importFile.click());
+
+    importFile.addEventListener('change', async () => {
+      const file = importFile.files[0];
+      if (!file) return;
+      try {
+        await recorder.loadFromFile(file);
+        log(`📂 Imported recording: ${recorder.frameCount} frames, ${formatTime(recorder.duration)}`);
+        enablePlayback();
+        seekBar.max = recorder.duration;
+        seekBar.value = 0;
+        timeDisplay.textContent = `00:00 / ${formatTime(recorder.duration)}`;
+        playbackStatus.textContent = '📼 Loaded';
+      } catch (err) {
+        log(`❌ Import failed: ${err.message}`);
+      }
+      importFile.value = '';
+    });
+
+    // ---- Playback ----
+    function enablePlayback() {
+      if (!player) {
+        player = new SessionPlayer(viewer._reconstructor, {
+          onTick: (info) => {
+            if (!seekBarDragging) {
+              seekBar.value = info.elapsed;
+              timeDisplay.textContent = `${formatTime(info.elapsed)} / ${formatTime(info.duration)}`;
+            }
+          },
+          onEnd: () => {
+            playBtn.disabled = false;
+            pauseBtn.disabled = true;
+            stopBtn.disabled = true;
+            playbackStatus.textContent = '⏹ Ended';
+            log('▶ Playback ended');
+          },
+          onStateChange: (info) => {
+            playbackStatus.textContent = info.state === 'playing'
+              ? `▶ Playing ${info.speed}x`
+              : info.state === 'paused'
+                ? '⏸ Paused'
+                : '⏹ Stopped';
+          },
+        });
       }
 
-      // Remove existing iframe if any
+      playBtn.disabled = false;
+      pauseBtn.disabled = true;
+      stopBtn.disabled = true;
+    }
+
+    function disablePlayback() {
+      playBtn.disabled = true;
+      pauseBtn.disabled = true;
+      stopBtn.disabled = true;
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (!player || !player.hasRecording) {
+        // Try to load from recorder
+        if (recorder && recorder.frameCount > 0) {
+          player.load(recorder.export());
+        } else {
+          log('⚠️ No recording to play');
+          return;
+        }
+      }
+      const speed = parseFloat(speedSelect.value);
+      player.play(speed);
+      playBtn.disabled = true;
+      pauseBtn.disabled = false;
+      stopBtn.disabled = false;
+      log(`▶ Playing at ${speed}x`);
+    });
+
+    pauseBtn.addEventListener('click', () => {
+      if (player) {
+        player.pause();
+        playBtn.disabled = false;
+        pauseBtn.disabled = true;
+      }
+    });
+
+    stopBtn.addEventListener('click', () => {
+      if (player) {
+        player.stop();
+        playBtn.disabled = false;
+        pauseBtn.disabled = true;
+        stopBtn.disabled = true;
+        seekBar.value = 0;
+        timeDisplay.textContent = `00:00 / ${formatTime(player.duration)}`;
+      }
+    });
+
+    speedSelect.addEventListener('change', () => {
+      if (player) {
+        player.setSpeed(parseFloat(speedSelect.value));
+      }
+    });
+
+    seekBar.addEventListener('input', () => {
+      if (!player || !player.hasRecording) return;
+      const ms = parseFloat(seekBar.value);
+      timeDisplay.textContent = `${formatTime(ms)} / ${formatTime(player.duration)}`;
+    });
+
+    seekBar.addEventListener('change', () => {
+      if (!player) return;
+      const ms = parseFloat(seekBar.value);
+      player.seek(ms);
+      seekBarDragging = false;
+      timeDisplay.textContent = `${formatTime(ms)} / ${formatTime(player.duration)}`;
+    });
+
+    seekBar.addEventListener('mousedown', () => { seekBarDragging = true; });
+    seekBar.addEventListener('mouseup', () => {
+      if (player && player.hasRecording) {
+        seekBar.dispatchEvent(new Event('change'));
+      }
+    });
+
+    // ---- Connect / Disconnect ----
+    connectBtn.addEventListener('click', async () => {
+      const sid = sessionIdInput.value.trim();
+      if (!sid) { log('⚠️ Please enter a Session ID'); return; }
+
+      if (viewer) { viewer.stop(); viewer = null; }
+      if (recorder) { recorder.stop(); recordBtn.textContent = '⏺ Rec'; recordBtn.classList.remove('active'); }
+      if (player) { player.stop(); }
+
       const existingIframe = viewerContainer.querySelector('iframe');
       if (existingIframe) existingIframe.remove();
 
-      // Same-origin WebSocket — works when served from the demo server over http://
       const serverUrl = `ws://${window.location.host}`;
 
       viewer = new ViewerAgent({
@@ -182,11 +422,17 @@
         serverUrl,
         container: viewerContainer,
         allowInteraction: true,
-        allowScripts: true,  // needed so the reconstructed page renders correctly
+        allowScripts: true,
       });
 
-      // Track messages
-      viewer._connection.on('message', () => updateMessageCount());
+      // Init recorder (but don't start)
+      recorder = new SessionRecorder();
+
+      // Wire recorder to capture all incoming messages
+      viewer._connection.on('message', (msg) => {
+        updateMessageCount();
+        if (recorder) recorder.record(msg);
+      });
 
       try {
         await viewer.start();
@@ -196,7 +442,9 @@
         sessionInfo.textContent = `Session: ${sid}`;
         connectBtn.disabled = true;
         disconnectBtn.disabled = false;
+        recordBtn.disabled = false;
         log(`✅ Connected to session: ${sid}`);
+        log('💡 Press ⏺ Rec to start recording, then export for later replay');
       } catch (err) {
         log(`❌ Connection failed: ${err.message}`);
         connectionStatus.textContent = '● Error';
@@ -205,10 +453,16 @@
     });
 
     disconnectBtn.addEventListener('click', () => {
-      if (viewer) {
-        viewer.stop();
-        viewer = null;
+      if (recorder && recorder.isRecording) {
+        recorder.stop();
+        recordBtn.textContent = '⏺ Rec';
+        recordBtn.classList.remove('active');
+        recordingStatus.textContent = '';
+        exportBtn.disabled = false;
       }
+      if (player) player.stop();
+      if (viewer) { viewer.stop(); viewer = null; }
+
       const existingIframe = viewerContainer.querySelector('iframe');
       if (existingIframe) existingIframe.remove();
       placeholder.style.display = 'flex';
@@ -217,6 +471,10 @@
       sessionInfo.textContent = 'No active session';
       connectBtn.disabled = false;
       disconnectBtn.disabled = true;
+      recordBtn.disabled = true;
+      disablePlayback();
+      playbackStatus.textContent = '';
+      recordingStatus.textContent = '';
       log('🔌 Disconnected');
     });
 
@@ -227,7 +485,7 @@
       }
     });
 
-    // Allow setting session ID via URL parameter for convenience
+    // URL param convenience
     const urlSessionId = new URLSearchParams(window.location.search).get('sessionId');
     if (urlSessionId) {
       sessionIdInput.value = urlSessionId;

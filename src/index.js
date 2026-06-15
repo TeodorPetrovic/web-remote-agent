@@ -29,3 +29,5 @@ export { DOMReconstructor } from './dom-reconstructor.js';
 export { Connection } from './connection.js';
 export { EventReplayer } from './event-replayer.js';
 export { MutationTracker } from './mutation-tracker.js';
+export { SessionRecorder } from './session-recorder.js';
+export { SessionPlayer } from './session-player.js';
