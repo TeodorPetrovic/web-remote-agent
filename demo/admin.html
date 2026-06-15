@@ -190,7 +190,7 @@
   </div>
 
   <script type="module">
-    import { ViewerAgent, SessionRecorder, SessionPlayer } from '../src/index.js';
+    import { ViewerAgent, SessionRecorder, SessionPlayer, DOMReconstructor } from '../src/index.js';
 
     // ---- DOM refs ----
     const sessionIdInput = document.getElementById('sessionIdInput');
@@ -288,8 +288,33 @@
       const file = importFile.files[0];
       if (!file) return;
       try {
+        if (!recorder) recorder = new SessionRecorder();
         await recorder.loadFromFile(file);
         log(`📂 Imported recording: ${recorder.frameCount} frames, ${formatTime(recorder.duration)}`);
+
+        // If no viewer is active, create the iframe + reconstructor for offline playback
+        if (!viewer) {
+          const existingIframe = viewerContainer.querySelector('iframe');
+          if (existingIframe) existingIframe.remove();
+          const iframe = document.createElement('iframe');
+          iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts');
+          iframe.style.cssText = 'width:100%;height:100%;border:none;background:#fff;';
+          viewerContainer.appendChild(iframe);
+          // Build reconstructor directly — no ViewerAgent needed for playback
+          viewer = {
+            _reconstructor: new DOMReconstructor(iframe, { allowScripts: true }),
+            _iframe: iframe,
+          };
+          placeholder.style.display = 'none';
+          connectionStatus.textContent = '● Offline playback';
+          connectionStatus.className = 'connected';
+          sessionInfo.textContent = `Recording: ${recorder._sessionId || file.name}`;
+          connectBtn.disabled = true;
+          disconnectBtn.disabled = true;
+          recordBtn.disabled = true;
+          recordingStatus.textContent = '';
+        }
+
         enablePlayback();
         seekBar.max = recorder.duration;
         seekBar.value = 0;
@@ -303,8 +328,14 @@
 
     // ---- Playback ----
     function enablePlayback() {
+      const recon = viewer?._reconstructor;
+      if (!recon) {
+        log('⚠️ No viewer or iframe available for playback');
+        return;
+      }
+
       if (!player) {
-        player = new SessionPlayer(viewer._reconstructor, {
+        player = new SessionPlayer(recon, {
           onTick: (info) => {
             if (!seekBarDragging) {
               seekBar.value = info.elapsed;
