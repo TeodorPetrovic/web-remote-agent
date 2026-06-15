@@ -1,0 +1,30 @@
+{
+  "name": "web-remote-agent",
+  "version": "0.1.0",
+  "description": "Remote screen viewing and collaboration library for web applications. Enables admins to view and interact with users' browser sessions in real time.",
+  "main": "src/index.js",
+  "type": "module",
+  "files": [
+    "src/"
+  ],
+  "scripts": {
+    "demo": "node demo/server.js",
+    "test": "node test/test.js"
+  },
+  "keywords": [
+    "remote",
+    "screen-share",
+    "collaboration",
+    "co-browsing",
+    "proctoring",
+    "web-remote"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TeodorPetrovic/web-remote-agent"
+  },
+  "devDependencies": {
+    "ws": "^8.16.0"
+  }
+}

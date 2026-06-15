@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Test Page — Web Remote Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+    }
+    header {
+      background: #4a90d9;
+      color: #fff;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.25rem; }
+    .status { font-size: 0.85rem; opacity: 0.9; }
+    main {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .card h2 { margin-bottom: 0.75rem; font-size: 1.1rem; }
+    form { display: flex; flex-direction: column; gap: 0.75rem; }
+    label { font-weight: 600; font-size: 0.9rem; }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.95rem;
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    button, .btn {
+      padding: 0.5rem 1.25rem;
+      background: #4a90d9;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    button:hover { background: #3a7bc8; }
+    .counter-box {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .counter-box button { font-size: 1.25rem; padding: 0.25rem 0.75rem; }
+    .counter-value { font-size: 2rem; font-weight: 700; min-width: 3rem; text-align: center; }
+    .results {
+      margin-top: 0.75rem;
+      padding: 0.75rem;
+      background: #f0f7ff;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      min-height: 2rem;
+    }
+    .agent-status { margin-top: 1rem; padding: 0.5rem; background: #e8f5e9; border-radius: 4px; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📝 Student Test Page</h1>
+    <span class="status" id="agentStatus">Agent: disconnected</span>
+  </header>
+
+  <main>
+    <!-- Quiz Form -->
+    <div class="card">
+      <h2>📋 Online Quiz</h2>
+      <form id="quizForm">
+        <div>
+          <label for="q1">1. What is the capital of France?</label>
+          <input type="text" id="q1" placeholder="Your answer...">
+        </div>
+        <div>
+          <label for="q2">2. Select your preferred language:</label>
+          <select id="q2">
+            <option value="">-- Choose --</option>
+            <option value="js">JavaScript</option>
+            <option value="py">Python</option>
+            <option value="go">Go</option>
+            <option value="rs">Rust</option>
+          </select>
+        </div>
+        <div>
+          <label for="q3">3. Explain your reasoning:</label>
+          <textarea id="q3" placeholder="Write your answer here..."></textarea>
+        </div>
+        <div>
+          <label><input type="checkbox" id="q4"> I confirm my answers are my own work</label>
+        </div>
+        <button type="submit">Submit Quiz</button>
+      </form>
+      <div class="results" id="quizResult"></div>
+    </div>
+
+    <!-- Interactive Counter -->
+    <div class="card">
+      <h2>🔢 Counter</h2>
+      <p>A simple interactive widget to test remote interaction replay.</p>
+      <div class="counter-box">
+        <button id="decBtn">−</button>
+        <span class="counter-value" id="counterValue">0</span>
+        <button id="incBtn">+</button>
+        <button id="resetBtn" class="btn" style="margin-left:1rem;">Reset</button>
+      </div>
+    </div>
+
+    <!-- Scrollable content -->
+    <div class="card" style="max-height:200px;overflow-y:auto;">
+      <h2>📜 Scrollable Content</h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+      <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+      <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
+    </div>
+
+    <!-- Buttons for testing remote clicks -->
+    <div class="card">
+      <h2>🎯 Click Targets</h2>
+      <button id="btnA" onclick="document.getElementById('clickResult').textContent='Button A clicked at '+new Date().toLocaleTimeString()">Button A</button>
+      <button id="btnB" onclick="document.getElementById('clickResult').textContent='Button B clicked at '+new Date().toLocaleTimeString()">Button B</button>
+      <button id="btnC" onclick="document.getElementById('clickResult').textContent='Button C clicked at '+new Date().toLocaleTimeString()">Button C</button>
+      <div class="results" id="clickResult">Click a button...</div>
+    </div>
+  </main>
+
+  <!-- Load the library as ES modules from the local src directory -->
+  <script type="module">
+    import { ClientAgent } from '../src/index.js';
+
+    // --- Quiz form handling ---
+    document.getElementById('quizForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const q1 = document.getElementById('q1').value;
+      const q2 = document.getElementById('q2').value;
+      const q3 = document.getElementById('q3').value;
+      const q4 = document.getElementById('q4').checked;
+      document.getElementById('quizResult').textContent =
+        `Submitted! Q1: "${q1}", Q2: "${q2}", Q3: "${q3}", Q4: ${q4}`;
+    });
+
+    // --- Counter ---
+    let counter = 0;
+    const counterEl = document.getElementById('counterValue');
+    document.getElementById('incBtn').addEventListener('click', () => {
+      counter++;
+      counterEl.textContent = counter;
+    });
+    document.getElementById('decBtn').addEventListener('click', () => {
+      counter--;
+      counterEl.textContent = counter;
+    });
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      counter = 0;
+      counterEl.textContent = counter;
+    });
+
+    // --- Agent ---
+    const statusEl = document.getElementById('agentStatus');
+    const sessionId = 'demo-session-' + Math.random().toString(36).slice(2, 8);
+    const serverUrl = `ws://localhost:${new URLSearchParams(window.location.search).get('port') || '8080'}`;
+
+    console.log(`[Student] Session ID: ${sessionId}`);
+    console.log(`[Student] Server: ${serverUrl}`);
+
+    const agent = new ClientAgent({
+      sessionId,
+      serverUrl,
+      snapshotIntervalMs: 2000,
+      lightIntervalMs: 300,
+    });
+
+    agent.start()
+      .then(() => {
+        statusEl.textContent = `Agent: connected (${sessionId})`;
+        statusEl.style.background = '#e8f5e9';
+        console.log('[Student] Agent started');
+      })
+      .catch((err) => {
+        statusEl.textContent = `Agent: error — ${err.message}`;
+        statusEl.style.background = '#ffebee';
+        console.error('[Student] Agent error:', err);
+      });
+
+    // Expose for debugging
+    window.__remoteAgent = agent;
+    window.__sessionId = sessionId;
+  </script>
+</body>
+</html>

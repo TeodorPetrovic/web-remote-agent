@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Viewer — Web Remote Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: #16213e;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #0f3460;
+    }
+    header h1 { font-size: 1.15rem; }
+    .controls { display: flex; gap: 0.75rem; align-items: center; }
+    .controls input {
+      padding: 0.35rem 0.6rem;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      font-size: 0.85rem;
+      width: 200px;
+    }
+    .controls button, .controls label {
+      padding: 0.35rem 0.85rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .btn-connect { background: #4caf50; color: #fff; }
+    .btn-connect:hover { background: #43a047; }
+    .btn-disconnect { background: #f44336; color: #fff; }
+    .btn-disconnect:hover { background: #e53935; }
+    .interaction-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .viewer-container {
+      flex: 1;
+      position: relative;
+      background: #222;
+      overflow: hidden;
+    }
+    .viewer-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #fff;
+    }
+    .placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+      font-size: 1.2rem;
+      pointer-events: none;
+    }
+    .status-bar {
+      padding: 0.4rem 1.5rem;
+      background: #16213e;
+      border-top: 1px solid #0f3460;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #888;
+    }
+    .status-bar .connected { color: #4caf50; }
+    .status-bar .disconnected { color: #f44336; }
+    .log-panel {
+      max-height: 150px;
+      overflow-y: auto;
+      background: #0d0d1a;
+      padding: 0.5rem 1rem;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #aaa;
+      border-top: 1px solid #0f3460;
+    }
+    .log-panel .log-line { padding: 2px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🖥️ Admin Viewer — Web Remote Agent</h1>
+    <div class="controls">
+      <input type="text" id="sessionIdInput" placeholder="Session ID">
+      <button class="btn-connect" id="connectBtn">Connect</button>
+      <button class="btn-disconnect" id="disconnectBtn" disabled>Disconnect</button>
+      <label class="interaction-toggle">
+        <input type="checkbox" id="interactionToggle">
+        Interaction Mode
+      </label>
+    </div>
+  </header>
+
+  <div class="viewer-container" id="viewerContainer">
+    <div class="placeholder" id="placeholder">
+      Enter a Session ID and click Connect to start viewing
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span id="connectionStatus" class="disconnected">● Disconnected</span>
+    <span id="sessionInfo">No active session</span>
+    <span id="msgCount">Messages: 0</span>
+  </div>
+
+  <div class="log-panel" id="logPanel">
+    <div class="log-line">Waiting for connection...</div>
+  </div>
+
+  <script type="module">
+    import { ViewerAgent } from '../src/index.js';
+
+    const sessionIdInput = document.getElementById('sessionIdInput');
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const interactionToggle = document.getElementById('interactionToggle');
+    const viewerContainer = document.getElementById('viewerContainer');
+    const placeholder = document.getElementById('placeholder');
+    const connectionStatus = document.getElementById('connectionStatus');
+    const sessionInfo = document.getElementById('sessionInfo');
+    const msgCount = document.getElementById('msgCount');
+    const logPanel = document.getElementById('logPanel');
+
+    let viewer = null;
+    let messageCount = 0;
+
+    function log(msg) {
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logPanel.appendChild(line);
+      logPanel.scrollTop = logPanel.scrollHeight;
+    }
+
+    function updateMessageCount() {
+      messageCount++;
+      msgCount.textContent = `Messages: ${messageCount}`;
+    }
+
+    connectBtn.addEventListener('click', async () => {
+      const sid = sessionIdInput.value.trim();
+      if (!sid) {
+        log('⚠️ Please enter a Session ID');
+        return;
+      }
+
+      if (viewer) {
+        viewer.stop();
+        viewer = null;
+      }
+
+      // Remove existing iframe if any
+      const existingIframe = viewerContainer.querySelector('iframe');
+      if (existingIframe) existingIframe.remove();
+
+      const serverUrl = `ws://localhost:${new URLSearchParams(window.location.search).get('port') || '8080'}`;
+
+      viewer = new ViewerAgent({
+        sessionId: sid,
+        serverUrl,
+        container: viewerContainer,
+        allowInteraction: true,
+      });
+
+      // Track messages
+      viewer._connection.on('message', () => updateMessageCount());
+
+      try {
+        await viewer.start();
+        placeholder.style.display = 'none';
+        connectionStatus.textContent = '● Connected';
+        connectionStatus.className = 'connected';
+        sessionInfo.textContent = `Session: ${sid}`;
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = false;
+        log(`✅ Connected to session: ${sid}`);
+      } catch (err) {
+        log(`❌ Connection failed: ${err.message}`);
+        connectionStatus.textContent = '● Error';
+        connectionStatus.className = 'disconnected';
+      }
+    });
+
+    disconnectBtn.addEventListener('click', () => {
+      if (viewer) {
+        viewer.stop();
+        viewer = null;
+      }
+      const existingIframe = viewerContainer.querySelector('iframe');
+      if (existingIframe) existingIframe.remove();
+      placeholder.style.display = 'flex';
+      connectionStatus.textContent = '● Disconnected';
+      connectionStatus.className = 'disconnected';
+      sessionInfo.textContent = 'No active session';
+      connectBtn.disabled = false;
+      disconnectBtn.disabled = true;
+      log('🔌 Disconnected');
+    });
+
+    interactionToggle.addEventListener('change', () => {
+      if (viewer) {
+        viewer.setInteractionMode(interactionToggle.checked);
+        log(interactionToggle.checked ? '🟢 Interaction mode ENABLED' : '🔴 Interaction mode DISABLED');
+      }
+    });
+
+    // Allow setting session ID via URL parameter for convenience
+    const urlSessionId = new URLSearchParams(window.location.search).get('sessionId');
+    if (urlSessionId) {
+      sessionIdInput.value = urlSessionId;
+      log(`📋 Session ID from URL: ${urlSessionId}`);
+    }
+
+    log('🚀 Admin viewer ready');
+  </script>
+</body>
+</html>
