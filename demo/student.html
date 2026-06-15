@@ -175,7 +175,9 @@
     // --- Agent ---
     const statusEl = document.getElementById('agentStatus');
     const sessionId = 'demo-session-' + Math.random().toString(36).slice(2, 8);
-    const serverUrl = `ws://localhost:${new URLSearchParams(window.location.search).get('port') || '8080'}`;
+    // Use same origin — works over http:// and avoids CORS issues
+    // with ES module imports from file://
+    const serverUrl = `ws://${window.location.host}`;
 
     console.log(`[Student] Session ID: ${sessionId}`);
     console.log(`[Student] Server: ${serverUrl}`);

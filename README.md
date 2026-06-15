@@ -78,8 +78,15 @@ viewer.setInteractionMode(true);
 ```bash
 npm install
 npm run demo
-# Opens WebSocket server on ws://localhost:8080
-# Open demo/student.html in one tab, demo/admin.html in another
+# Serves HTTP + WebSocket on http://localhost:8080
+#
+# Open in your browser:
+#   http://localhost:8080/demo/student.html   (student side)
+#   http://localhost:8080/demo/admin.html     (admin side)
+#
+# IMPORTANT: Always access via http://localhost:8080 — opening the HTML
+# files directly from disk (file://) will fail because browsers block
+# ES module imports across file:// origins.
 ```
 
 ## API Reference

@@ -174,7 +174,8 @@
       const existingIframe = viewerContainer.querySelector('iframe');
       if (existingIframe) existingIframe.remove();
 
-      const serverUrl = `ws://localhost:${new URLSearchParams(window.location.search).get('port') || '8080'}`;
+      // Same-origin WebSocket — works when served from the demo server over http://
+      const serverUrl = `ws://${window.location.host}`;
 
       viewer = new ViewerAgent({
         sessionId: sid,
