@@ -175,7 +175,8 @@ export class ViewerAgent {
     e.stopPropagation();
     this._sendInteraction({
       type: 'click',
-      coords: { x: e.clientX, y: e.clientY },
+      selector: this._getSelector(e.target),  // preferred by EventReplayer
+      coords: { x: e.clientX, y: e.clientY }, // fallback
       button: e.button,
     });
   }
@@ -216,6 +217,7 @@ export class ViewerAgent {
     this._lastMouseMove = Date.now();
     this._sendInteraction({
       type: 'mousemove',
+      selector: this._getSelector(e.target),
       coords: { x: e.clientX, y: e.clientY },
     });
   }

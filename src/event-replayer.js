@@ -99,6 +99,30 @@ export class EventReplayer {
     }
   }
 
+  /**
+   * Set the .value property on a form element using its own prototype's
+   * native setter so framework reactivity traps it correctly.
+   */
+  _setNativeValue(target, value) {
+    const tag = target.tagName;
+    let proto;
+    if (tag === 'TEXTAREA') {
+      proto = HTMLTextAreaElement.prototype;
+    } else if (tag === 'SELECT') {
+      proto = HTMLSelectElement.prototype;
+    } else {
+      proto = HTMLInputElement.prototype;
+    }
+
+    const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value');
+    if (nativeSetter?.set) {
+      nativeSetter.set.call(target, value);
+    } else {
+      // Fallback for elements that don't have a native value setter
+      target.value = value;
+    }
+  }
+
   _isBlocked(el) {
     for (const blocked of this._blockedSelectors) {
       if (el.matches?.(blocked)) return true;
@@ -109,19 +133,16 @@ export class EventReplayer {
   _dispatchEvent(target, event) {
     if (event.type === 'input' || event.type === 'change') {
       // For input/change events, we need to actually set the value first
+      // so the DOM reflects the change before the event fires.
       if (event.value !== undefined) {
         if (target.type === 'checkbox' || target.type === 'radio') {
           target.checked = event.checked ?? !target.checked;
         } else {
-          // Use native setter to trigger React/Vue reactivity
-          const nativeSetter = Object.getOwnPropertyDescriptor(
-            HTMLInputElement.prototype, 'value',
-          );
-          if (nativeSetter?.set) {
-            nativeSetter.set.call(target, event.value);
-          } else {
-            target.value = event.value;
-          }
+          // Use the correct native setter for the element type so React /
+          // Vue / framework reactivity picks up the change. Using the wrong
+          // prototype (e.g. HTMLInputElement on a textarea) throws
+          // "Illegal invocation".
+          this._setNativeValue(target, event.value);
         }
       }
     }

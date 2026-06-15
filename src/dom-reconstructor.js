@@ -186,10 +186,15 @@ export class DOMReconstructor {
   }
 
   _stripScripts(html) {
-    // Remove <script> tags and inline event handlers for security
+    // Remove <script> tags and inline event handlers for security.
+    // The regex handles both single- and double-quoted attribute values.
     return html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/\son\w+\s*=\s*["'][^"']*["']/gi, '')
+      // Double-quoted on* handlers: onclick="code"
+      .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+      // Single-quoted on* handlers: onclick='code'
+      .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+      // Unquoted on* handlers: onclick=code
       .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
       .replace(/javascript\s*:/gi, 'blocked:');
   }
