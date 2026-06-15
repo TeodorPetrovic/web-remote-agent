@@ -39,8 +39,12 @@ export class ViewerAgent {
 
     // Create the sandboxed iframe
     this._iframe = this._createIframe(opts.allowScripts ?? false);
+
+    // DOMReconstructor calls onContentWritten after each doc.write() so
+    // we can re-bind interaction listeners on the fresh document.
     this._reconstructor = new DOMReconstructor(this._iframe, {
       allowScripts: opts.allowScripts ?? false,
+      onContentWritten: (doc) => this._bindInteractionListeners(doc),
     });
 
     this._started = false;
@@ -80,12 +84,21 @@ export class ViewerAgent {
     // Register as viewer for this session
     this._send({ _type: 'register', sessionId: this.sessionId, role: 'viewer' });
 
-    this._bindInteractionEvents();
+    // Bind interaction listeners on the initial about:blank document if
+    // it's already accessible. After each snapshot write, onContentWritten
+    // re-binds them automatically.
+    if (this.allowInteraction) {
+      const doc = this._iframe.contentDocument;
+      if (doc) {
+        this._bindInteractionListeners(doc);
+      }
+    }
   }
 
   /** Stop the viewer. */
   stop() {
-    this._unbindInteractionEvents();
+    const doc = this._iframe.contentDocument;
+    if (doc) this._unbindInteractionListeners(doc);
     this._connection.close();
     this._started = false;
   }
@@ -126,24 +139,27 @@ export class ViewerAgent {
     return iframe;
   }
 
-  _bindInteractionEvents() {
+  /**
+   * Bind interaction listeners on the given document.
+   * Called once on start() for the initial about:blank doc, then again
+   * via onContentWritten after each snapshot write replaces the content.
+   */
+  _bindInteractionListeners(doc) {
     if (!this.allowInteraction) return;
-    const doc = () => this._iframe.contentDocument;
-    // Bind after iframe loads
-    this._iframe.addEventListener('load', () => {
-      const d = doc();
-      if (!d) return;
-      d.addEventListener('click', this._onFrameClick, true);
-      d.addEventListener('input', this._onFrameInput, true);
-      d.addEventListener('change', this._onFrameInput, true);
-      d.addEventListener('keydown', this._onFrameKey, true);
-      d.addEventListener('scroll', this._onFrameScroll, true);
-      d.addEventListener('mousemove', this._onFrameMouseMove, true);
-    });
+    if (!doc) return;
+
+    // Remove stale listeners first (in case we're re-binding after a write)
+    this._unbindInteractionListeners(doc);
+
+    doc.addEventListener('click', this._onFrameClick, true);
+    doc.addEventListener('input', this._onFrameInput, true);
+    doc.addEventListener('change', this._onFrameInput, true);
+    doc.addEventListener('keydown', this._onFrameKey, true);
+    doc.addEventListener('scroll', this._onFrameScroll, true);
+    doc.addEventListener('mousemove', this._onFrameMouseMove, true);
   }
 
-  _unbindInteractionEvents() {
-    const doc = this._iframe.contentDocument;
+  _unbindInteractionListeners(doc) {
     if (!doc) return;
     doc.removeEventListener('click', this._onFrameClick, true);
     doc.removeEventListener('input', this._onFrameInput, true);

@@ -9,6 +9,8 @@ export class DOMReconstructor {
    * @param {Object} [opts]
    * @param {boolean} [opts.allowScripts=false] Enable scripts inside the
    *   reconstructed page (security risk — only enable for trusted content)
+   * @param {function} [opts.onContentWritten] Called after each doc.write
+   *   completes, so callers can re-bind event listeners on the fresh document
    */
   constructor(iframe, opts = {}) {
     if (!iframe || iframe.tagName !== 'IFRAME') {
@@ -16,17 +18,27 @@ export class DOMReconstructor {
     }
     this._iframe = iframe;
     this._allowScripts = opts.allowScripts ?? false;
+    this._onContentWritten = opts.onContentWritten || null;
     this._lastSnapshot = null;
     this._ready = false;
 
-    // Wait for the iframe to be ready
-    this._iframe.addEventListener('load', () => {
+    // Proactive check: the iframe may already be loaded (e.g. about:blank
+    // fired its load event synchronously before we could listen).
+    if (this._getDoc()) {
       this._ready = true;
-      // Re-apply the last snapshot if one was set before the iframe loaded
-      if (this._lastSnapshot) {
-        this._applySnapshot(this._lastSnapshot);
-      }
-    });
+    }
+
+    // Safety net: if the iframe wasn't loaded yet, wait for the load event.
+    // We add the listener after the proactive check so that if load fires
+    // between the check and here, we still catch it.
+    if (!this._ready) {
+      this._iframe.addEventListener('load', () => {
+        this._ready = true;
+        if (this._lastSnapshot) {
+          this._applySnapshot(this._lastSnapshot);
+        }
+      }, { once: true });
+    }
   }
 
   /**
@@ -35,8 +47,19 @@ export class DOMReconstructor {
    */
   applySnapshot(snapshot) {
     this._lastSnapshot = snapshot;
-    if (!this._ready) return; // will be applied via load handler
-    this._applySnapshot(snapshot);
+
+    // If we can access the document right now, apply immediately.
+    // This handles both the case where the iframe loaded before we
+    // listened (constructor set _ready=true) and any transient state.
+    if (this._getDoc()) {
+      this._ready = true;
+      this._applySnapshot(snapshot);
+      return;
+    }
+
+    // Document isn't accessible yet — either cross-origin or the iframe
+    // hasn't finished its initial load. The load handler will replay
+    // _lastSnapshot when it fires.
   }
 
   /**
@@ -99,7 +122,7 @@ export class DOMReconstructor {
 
   /** Check whether the iframe document is accessible. */
   isReady() {
-    return this._ready && !!this._getDoc();
+    return !!this._getDoc();
   }
 
   // ---- internals ---------------------------------------------------------
@@ -119,12 +142,18 @@ export class DOMReconstructor {
     doc.write(html);
     doc.close();
 
-    // After the write completes (next microtask), restore scroll position
+    // Notify that new content was written (so ViewerAgent can re-bind
+    // interaction listeners on the fresh document).
+    if (this._onContentWritten) {
+      this._onContentWritten(doc);
+    }
+
+    // After the write completes (next animation frame), restore scroll
+    // position and form values.
     requestAnimationFrame(() => {
       if (snapshot.scroll) {
         doc.defaultView?.scrollTo(snapshot.scroll.x, snapshot.scroll.y);
       }
-      // Restore form values after DOM is settled
       if (snapshot.forms) {
         for (const field of snapshot.forms) {
           try {
