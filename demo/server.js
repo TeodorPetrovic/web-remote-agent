@@ -57,6 +57,22 @@ const server = createServer(async (req, res) => {
   // Normalize the path and prevent directory traversal
   let pathname = normalize(req.url.split('?')[0]);
 
+  // ---- API routes ----
+  if (pathname === '/api/sessions' && req.method === 'GET') {
+    const list = [];
+    for (const [id, s] of sessions) {
+      list.push({
+        id,
+        clientConnected: s.client !== null && s.client.readyState === 1,
+        viewerConnected: s.viewer !== null && s.viewer.readyState === 1,
+        startedAt: s.startedAt,
+      });
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ sessions: list }));
+    return;
+  }
+
   // Default route → student page
   if (pathname === '/' || pathname === '/index.html') {
     pathname = '/demo/student.html';
@@ -126,7 +142,11 @@ wss.on('connection', (ws, req) => {
       role = msg.role;
 
       if (!sessions.has(sessionId)) {
-        sessions.set(sessionId, { client: null, viewer: null });
+        sessions.set(sessionId, {
+          client: null,
+          viewer: null,
+          startedAt: new Date().toISOString(),
+        });
       }
 
       const session = sessions.get(sessionId);

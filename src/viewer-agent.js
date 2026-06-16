@@ -49,6 +49,7 @@ export class ViewerAgent {
 
     this._started = false;
     this._interactionMode = false; // toggled by the admin
+    this._frozen = false;         // freeze live updates to inspect the page
     this._onFrameClick = this._onFrameClick.bind(this);
     this._onFrameInput = this._onFrameInput.bind(this);
     this._onFrameKey = this._onFrameKey.bind(this);
@@ -62,6 +63,12 @@ export class ViewerAgent {
     this._started = true;
 
     this._connection.on('message', (msg) => {
+      // When frozen, skip snapshot updates so the admin can inspect
+      // the page at their leisure without live data overwriting it.
+      if (this._frozen && (msg._type === 'snapshot' || msg._type === 'light-snapshot')) {
+        return;
+      }
+
       switch (msg._type) {
         case 'snapshot':
           this._reconstructor.applySnapshot(msg);
@@ -106,6 +113,21 @@ export class ViewerAgent {
   /** Enable or disable admin-to-student interaction mode. */
   setInteractionMode(enabled) {
     this._interactionMode = enabled;
+  }
+
+  /**
+   * Freeze or unfreeze live updates. When frozen, incoming snapshots are
+   * ignored so the admin can inspect the page without it refreshing.
+   * The most recent snapshot before freezing is preserved. When unfrozen,
+   * the next live snapshot restores the stream.
+   */
+  setFrozen(frozen) {
+    this._frozen = frozen;
+  }
+
+  /** Whether live updates are currently frozen. */
+  get isFrozen() {
+    return this._frozen;
   }
 
   /** Get the underlying iframe element (e.g., to style or measure). */

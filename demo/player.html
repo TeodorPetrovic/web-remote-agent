@@ -5,151 +5,141 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Session Player — Web Remote Agent</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #0d0d1a;
-      color: #e0e0e0;
+      font-family: 'Google Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f8f9fa;
+      color: #202124;
       height: 100vh;
       display: flex;
       flex-direction: column;
+      font-size: 14px;
+      line-height: 1.5;
     }
 
-    /* --- empty state --- */
+    .topbar {
+      background: #fff;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid #e8eaed;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+      flex-shrink: 0;
+    }
+    .topbar .logo { font-size: 18px; font-weight: 500; color: #1a73e8; letter-spacing: -0.3px; }
+    .topbar .logo span { color: #5f6368; font-weight: 400; }
+    .topbar .sep { flex: 1; }
+    .topbar .session-name { font-size: 14px; color: #3c4043; }
+
+    /* Empty state */
     .empty-state {
       flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 1.5rem;
-      color: #666;
+      gap: 16px;
+      color: #5f6368;
     }
-    .empty-state h1 { font-size: 1.5rem; color: #888; }
-    .empty-state p { font-size: 0.9rem; max-width: 400px; text-align: center; line-height: 1.5; }
-    .btn-load {
-      padding: 0.75rem 2rem;
-      font-size: 1rem;
-      background: #2196f3;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+    .empty-state .icon { font-size: 56px; opacity: .6; }
+    .empty-state h1 { font-size: 22px; font-weight: 500; color: #202124; }
+    .empty-state p { font-size: 14px; color: #5f6368; max-width: 380px; text-align: center; line-height: 1.6; }
+    .empty-state .btn {
+      padding: 10px 28px; font-size: 14px; font-weight: 500; border: none;
+      border-radius: 8px; cursor: pointer; background: #1a73e8; color: #fff;
+      transition: background .15s;
     }
-    .btn-load:hover { background: #1976d2; }
+    .empty-state .btn:hover { background: #1765cc; }
 
-    /* --- header (hidden until loaded) --- */
-    .app-header {
-      display: none;
-      background: #16213e;
-      padding: 0.5rem 1rem;
-      border-bottom: 1px solid #0f3460;
-      align-items: center;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    .app-header.visible { display: flex; }
-    .app-header .session-title { font-size: 0.95rem; font-weight: 600; }
-
-    /* --- playback toolbar --- */
+    /* Toolbar (hidden until loaded) */
     .toolbar {
       display: none;
-      background: #16213e;
-      padding: 0.4rem 1rem;
-      border-bottom: 1px solid #0f3460;
+      background: #fff;
+      padding: 8px 24px;
       align-items: center;
-      gap: 1rem;
+      gap: 12px;
+      border-bottom: 1px solid #e8eaed;
       flex-wrap: wrap;
-      font-size: 0.82rem;
+      flex-shrink: 0;
     }
     .toolbar.visible { display: flex; }
-    .toolbar button {
-      padding: 0.3rem 0.6rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      white-space: nowrap;
+    .toolbar .group { display: flex; align-items: center; gap: 6px; }
+    .toolbar .label { font-size: 11px; color: #5f6368; text-transform: uppercase; letter-spacing: .5px; }
+    .toolbar .btn {
+      padding: 6px 14px; border: none; border-radius: 6px;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      transition: background .15s;
     }
+    .toolbar .btn:disabled { opacity: .45; cursor: default; }
+    .btn-play { background: #1a73e8; color: #fff; }
+    .btn-play:hover:not(:disabled) { background: #1765cc; }
+    .btn-outline { background: #fff; color: #1a73e8; border: 1px solid #dadce0; }
+    .btn-outline:hover:not(:disabled) { background: #f1f3f4; }
     .toolbar select {
-      padding: 0.3rem 0.4rem;
-      border: 1px solid #0f3460;
-      border-radius: 4px;
-      background: #1a1a2e;
-      color: #e0e0e0;
-      font-size: 0.8rem;
+      padding: 5px 24px 5px 8px; border: 1px solid #dadce0;
+      border-radius: 6px; font-size: 12px; background: #fff; appearance: none;
     }
-    .btn-play { background: #4caf50; color: #fff; }
-    .btn-pause { background: #ff9800; color: #fff; }
-    .btn-stop { background: #f44336; color: #fff; }
-    .btn-load-sm { background: #2196f3; color: #fff; }
-    .toolbar .time-display { font-family: monospace; min-width: 130px; text-align: center; }
-    .toolbar .frame-info { color: #888; font-size: 0.75rem; min-width: 100px; }
-    .toolbar input[type="range"] {
-      flex: 1; min-width: 150px; accent-color: #4caf50;
-    }
-    .toolbar-group {
-      display: flex; align-items: center; gap: 0.35rem;
-    }
+    .toolbar input[type="range"] { flex: 1; min-width: 120px; accent-color: #1a73e8; }
+    .toolbar .time { font-family: 'Roboto Mono', monospace; font-size: 12px; color: #3c4043; min-width: 110px; text-align: center; }
+    .toolbar .frame-label { font-size: 11px; color: #5f6368; min-width: 90px; }
 
-    /* --- viewer --- */
-    .viewer-container {
+    /* Viewer */
+    .viewer-wrap {
       flex: 1;
-      position: relative;
-      background: #111;
+      display: none;
+      background: #e8eaed;
+      margin: 12px;
+      border-radius: 12px;
       overflow: hidden;
-      display: none;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
     }
-    .viewer-container.visible { display: block; }
-    .viewer-container iframe {
-      width: 100%; height: 100%; border: none; background: #fff;
-    }
+    .viewer-wrap.visible { display: block; }
+    .viewer-wrap iframe { width: 100%; height: 100%; border: none; background: #fff; }
 
-    /* --- info bar --- */
-    .info-bar {
+    /* Footer */
+    .footer {
       display: none;
-      padding: 0.3rem 1rem;
-      background: #16213e;
-      border-top: 1px solid #0f3460;
-      font-size: 0.75rem;
-      color: #888;
-      justify-content: space-between;
+      background: #fff;
+      padding: 0 24px; height: 36px;
+      align-items: center; justify-content: space-between;
+      border-top: 1px solid #e8eaed;
+      font-size: 11px; color: #5f6368;
+      flex-shrink: 0;
     }
-    .info-bar.visible { display: flex; }
-    .info-bar span { font-family: monospace; }
+    .footer.visible { display: flex; }
   </style>
 </head>
 <body>
 
-  <!-- Empty state -->
-  <div class="empty-state" id="emptyState">
-    <h1>🎬 Session Player</h1>
-    <p>
-      Load a session recording (.json) exported from the admin viewer
-      to replay the student's screen at any speed. No live connection
-      needed — works fully offline after export.
-    </p>
-    <button class="btn-load" id="loadBtn">📂 Load Recording</button>
-    <input type="file" id="fileInput" accept=".json" style="display:none">
+  <div class="topbar" id="topbar">
+    <span class="logo">Remote<span>Agent</span></span>
+    <span style="color:#dadce0;">|</span>
+    <span class="session-name" id="sessionName">Player</span>
+    <span class="sep"></span>
+    <button class="btn-outline" id="loadBtnSm" style="padding:6px 14px;font-size:12px;">📂 Load</button>
   </div>
 
-  <!-- Header -->
-  <div class="app-header" id="appHeader">
-    <span>🎬</span>
-    <span class="session-title" id="sessionTitle">Session Player</span>
-    <span style="flex:1"></span>
-    <button class="btn-load-sm" id="loadBtn2">📂 Load</button>
+  <!-- Empty state -->
+  <div class="empty-state" id="emptyState">
+    <span class="icon">🎬</span>
+    <h1>Session Player</h1>
+    <p>Load a <code>.json</code> recording exported from the admin viewer to replay the student's screen at any speed. No live connection needed — works fully offline.</p>
+    <button class="btn" id="loadBtn">📂 Load Recording</button>
+    <input type="file" id="fileInput" accept=".json" style="display:none">
   </div>
 
   <!-- Toolbar -->
   <div class="toolbar" id="toolbar">
-    <div class="toolbar-group">
-      <button class="btn-play" id="playBtn">▶ Play</button>
-      <button class="btn-pause" id="pauseBtn">⏸ Pause</button>
-      <button class="btn-stop" id="stopBtn">⏹ Stop</button>
+    <div class="group">
+      <span class="label">Playback</span>
+      <button class="btn btn-play" id="playBtn">▶ Play</button>
+      <button class="btn btn-outline" id="pauseBtn">⏸ Pause</button>
+      <button class="btn btn-outline" id="stopBtn">⏹ Stop</button>
     </div>
-    <div class="toolbar-group">
-      <label style="color:#888;">Speed</label>
+    <div class="group">
+      <span class="label">Speed</span>
       <select id="speedSelect">
         <option value="0.25">0.25x</option>
         <option value="0.5">0.5x</option>
@@ -158,86 +148,69 @@
         <option value="4">4x</option>
       </select>
     </div>
-    <div class="toolbar-group" style="flex:1; min-width:150px;">
+    <div class="group" style="flex:1;min-width:120px;">
       <input type="range" id="seekBar" min="0" max="100" value="0" style="width:100%">
     </div>
-    <div class="toolbar-group">
-      <span class="time-display" id="timeDisplay">00:00 / 00:00</span>
-    </div>
-    <div class="toolbar-group">
-      <span class="frame-info" id="frameInfo"></span>
-    </div>
+    <span class="time" id="timeDisplay">00:00 / 00:00</span>
+    <span class="frame-label" id="frameLabel"></span>
   </div>
 
   <!-- Viewer -->
-  <div class="viewer-container" id="viewerContainer"></div>
+  <div class="viewer-wrap" id="viewerWrap"></div>
 
-  <!-- Info bar -->
-  <div class="info-bar" id="infoBar">
-    <span id="recordingInfo"></span>
-    <span id="playbackState">Ready</span>
+  <!-- Footer -->
+  <div class="footer" id="footer">
+    <span id="footerLeft"></span>
+    <span id="footerRight">Ready</span>
   </div>
 
   <script type="module">
     import { DOMReconstructor, SessionRecorder, SessionPlayer } from '../src/index.js';
 
-    // ---- DOM refs ----
     const emptyState = document.getElementById('emptyState');
-    const appHeader = document.getElementById('appHeader');
     const toolbar = document.getElementById('toolbar');
-    const viewerContainer = document.getElementById('viewerContainer');
-    const infoBar = document.getElementById('infoBar');
+    const viewerWrap = document.getElementById('viewerWrap');
+    const footer = document.getElementById('footer');
+    const sessionName = document.getElementById('sessionName');
     const loadBtn = document.getElementById('loadBtn');
-    const loadBtn2 = document.getElementById('loadBtn2');
+    const loadBtnSm = document.getElementById('loadBtnSm');
     const fileInput = document.getElementById('fileInput');
-    const sessionTitle = document.getElementById('sessionTitle');
     const playBtn = document.getElementById('playBtn');
     const pauseBtn = document.getElementById('pauseBtn');
     const stopBtn = document.getElementById('stopBtn');
     const speedSelect = document.getElementById('speedSelect');
     const seekBar = document.getElementById('seekBar');
     const timeDisplay = document.getElementById('timeDisplay');
-    const frameInfo = document.getElementById('frameInfo');
-    const recordingInfo = document.getElementById('recordingInfo');
-    const playbackState = document.getElementById('playbackState');
+    const frameLabel = document.getElementById('frameLabel');
+    const footerLeft = document.getElementById('footerLeft');
+    const footerRight = document.getElementById('footerRight');
 
-    // ---- State ----
     let reconstructor = null;
     let recorder = new SessionRecorder();
     let player = null;
     let seekBarDragging = false;
 
-    // ---- Helpers ----
     function formatTime(ms) {
       const s = Math.floor(ms / 1000);
-      const m = Math.floor(s / 60);
-      return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+      return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
     }
 
-    function showApp() {
+    function showPlayer() {
       emptyState.style.display = 'none';
-      appHeader.classList.add('visible');
       toolbar.classList.add('visible');
-      viewerContainer.classList.add('visible');
-      infoBar.classList.add('visible');
+      viewerWrap.classList.add('visible');
+      footer.classList.add('visible');
     }
 
     function ensureReconstructor() {
       if (reconstructor) return reconstructor;
-
-      // Remove any existing iframe
-      const old = viewerContainer.querySelector('iframe');
+      const old = viewerWrap.querySelector('iframe');
       if (old) old.remove();
-
-      // Create a fresh sandboxed iframe
       const iframe = document.createElement('iframe');
       iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts');
       iframe.style.cssText = 'width:100%;height:100%;border:none;background:#fff;';
-      viewerContainer.appendChild(iframe);
-
-      reconstructor = new DOMReconstructor(iframe, {
-        allowScripts: true,
-      });
+      viewerWrap.appendChild(iframe);
+      reconstructor = new DOMReconstructor(iframe, { allowScripts: true });
       return reconstructor;
     }
 
@@ -249,149 +222,100 @@
             if (!seekBarDragging) {
               seekBar.value = info.elapsed;
               timeDisplay.textContent = `${formatTime(info.elapsed)} / ${formatTime(info.duration)}`;
-              frameInfo.textContent = `Frame ${info.frameIndex + 1}/${info.frameCount}`;
             }
-            playbackState.textContent = info.state === 'playing'
+            footerRight.textContent = info.state === 'playing'
               ? `▶ Playing ${player.speed}x`
               : info.state === 'paused' ? '⏸ Paused' : '⏹ Stopped';
           },
           onEnd: () => {
-            playBtn.disabled = false;
-            pauseBtn.disabled = true;
-            playbackState.textContent = '⏹ Ended';
+            playBtn.disabled = false; pauseBtn.disabled = true;
+            footerRight.textContent = '⏹ Ended';
           },
           onStateChange: (info) => {
-            playbackState.textContent = info.state === 'playing'
+            footerRight.textContent = info.state === 'playing'
               ? `▶ Playing ${info.speed}x`
               : info.state === 'paused' ? '⏸ Paused' : '⏹ Stopped';
           },
         });
 
-        // Load the recording data into the player — this is what was missing.
-        // Without load(), the player's timeline is empty and play() is a no-op.
         player.load(recorder.export());
 
         const dur = recorder.duration;
         seekBar.max = dur;
         seekBar.value = 0;
         timeDisplay.textContent = `00:00 / ${formatTime(dur)}`;
-        frameInfo.textContent = `${recorder.frameCount} frames`;
-        recordingInfo.textContent = `Session: ${recorder._sessionId || '—'} | ${recorder.frameCount} frames | ${formatTime(dur)}`;
-        sessionTitle.textContent = recorder._sessionId || 'Imported Recording';
+        frameLabel.textContent = `${recorder.frameCount} frames`;
+        footerLeft.textContent = `Session: ${recorder._sessionId || '—'}`;
+        sessionName.textContent = recorder._sessionId || 'Imported Recording';
 
-        showApp();
+        showPlayer();
         playBtn.disabled = false;
         pauseBtn.disabled = true;
         stopBtn.disabled = true;
-        playbackState.textContent = '📼 Loaded — press Play';
-
-        // Seek to first frame to render it
+        footerRight.textContent = '📼 Loaded — press Play';
         player.seek(0);
       });
     }
 
-    // ---- Load buttons ----
     loadBtn.addEventListener('click', () => fileInput.click());
-    loadBtn2.addEventListener('click', () => fileInput.click());
+    loadBtnSm.addEventListener('click', () => fileInput.click());
 
     fileInput.addEventListener('change', async () => {
       const file = fileInput.files[0];
       if (!file) return;
-      try {
-        await loadRecording(file);
-      } catch (err) {
-        alert('Failed to load recording: ' + err.message);
-      }
+      try { await loadRecording(file); } catch (err) { alert('Failed: ' + err.message); }
       fileInput.value = '';
     });
 
-    // ---- Playback controls ----
     playBtn.addEventListener('click', () => {
       if (!player) return;
       player.play(parseFloat(speedSelect.value));
-      playBtn.disabled = true;
-      pauseBtn.disabled = false;
-      stopBtn.disabled = false;
+      playBtn.disabled = true; pauseBtn.disabled = false; stopBtn.disabled = false;
     });
-
     pauseBtn.addEventListener('click', () => {
-      if (!player) return;
-      player.pause();
-      playBtn.disabled = false;
-      pauseBtn.disabled = true;
+      player?.pause(); playBtn.disabled = false; pauseBtn.disabled = true;
     });
-
     stopBtn.addEventListener('click', () => {
-      if (!player) return;
-      player.stop();
-      playBtn.disabled = false;
-      pauseBtn.disabled = true;
-      stopBtn.disabled = true;
+      player?.stop();
+      playBtn.disabled = false; pauseBtn.disabled = true; stopBtn.disabled = true;
       seekBar.value = 0;
       timeDisplay.textContent = `00:00 / ${formatTime(player.duration)}`;
-      playbackState.textContent = '⏹ Stopped';
+      footerRight.textContent = '⏹ Stopped';
     });
-
     speedSelect.addEventListener('change', () => {
-      if (player) player.setSpeed(parseFloat(speedSelect.value));
+      player?.setSpeed(parseFloat(speedSelect.value));
     });
-
-    // ---- Seek bar ----
     seekBar.addEventListener('mousedown', () => { seekBarDragging = true; });
     seekBar.addEventListener('input', () => {
-      if (!player || !player.hasRecording) return;
-      const ms = parseFloat(seekBar.value);
-      timeDisplay.textContent = `${formatTime(ms)} / ${formatTime(player.duration)}`;
+      if (!player?.hasRecording) return;
+      timeDisplay.textContent = `${formatTime(parseFloat(seekBar.value))} / ${formatTime(player.duration)}`;
     });
     seekBar.addEventListener('change', () => {
       if (!player) return;
-      const ms = parseFloat(seekBar.value);
-      player.seek(ms);
+      player.seek(parseFloat(seekBar.value));
       seekBarDragging = false;
     });
     seekBar.addEventListener('mouseup', () => {
-      if (player && player.hasRecording) {
-        seekBar.dispatchEvent(new Event('change'));
-      }
+      if (player?.hasRecording) seekBar.dispatchEvent(new Event('change'));
     });
 
-    // ---- Keyboard shortcuts ----
+    // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
-      if (!player || !player.hasRecording) return;
+      if (!player?.hasRecording) return;
       switch (e.code) {
-        case 'Space':
-          e.preventDefault();
-          if (player.state === 'playing') {
-            pauseBtn.click();
-          } else {
-            playBtn.click();
-          }
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          player.seek(Math.max(0, player.currentTime - 1000));
-          seekBar.value = player.currentTime;
-          timeDisplay.textContent = `${formatTime(player.currentTime)} / ${formatTime(player.duration)}`;
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          player.seek(Math.min(player.duration, player.currentTime + 1000));
-          seekBar.value = player.currentTime;
-          timeDisplay.textContent = `${formatTime(player.currentTime)} / ${formatTime(player.duration)}`;
-          break;
+        case 'Space': e.preventDefault(); (player.state==='playing'?pauseBtn:playBtn).click(); break;
+        case 'ArrowLeft': e.preventDefault(); player.seek(Math.max(0,player.currentTime-1000)); seekBar.value=player.currentTime; break;
+        case 'ArrowRight': e.preventDefault(); player.seek(Math.min(player.duration,player.currentTime+1000)); seekBar.value=player.currentTime; break;
       }
     });
 
-    // ---- Drag & drop support ----
-    document.addEventListener('dragover', (e) => { e.preventDefault(); });
-    document.addEventListener('drop', async (e) => {
+    // Drag & drop
+    document.addEventListener('dragover', e => e.preventDefault());
+    document.addEventListener('drop', async e => {
       e.preventDefault();
       const file = e.dataTransfer.files[0];
-      if (!file || !file.name.endsWith('.json')) return;
-      try {
-        await loadRecording(file);
-      } catch (err) {
-        alert('Failed to load recording: ' + err.message);
+      if (file?.name.endsWith('.json')) {
+        try { await loadRecording(file); } catch (err) { alert('Failed: ' + err.message); }
       }
     });
   </script>

@@ -3,157 +3,215 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Viewer — Web Remote Agent</title>
+  <title>Web Remote Agent — Admin</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #1a1a2e;
-      color: #e0e0e0;
+      font-family: 'Google Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f8f9fa;
+      color: #202124;
       height: 100vh;
       display: flex;
       flex-direction: column;
+      font-size: 14px;
+      line-height: 1.5;
     }
-    header {
-      background: #16213e;
-      padding: 0.5rem 1rem;
+
+    /* Header */
+    .topbar {
+      background: #fff;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid #e8eaed;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+    .topbar .logo {
+      font-size: 18px;
+      font-weight: 500;
+      color: #1a73e8;
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+    }
+    .topbar .logo span { color: #5f6368; font-weight: 400; }
+    .topbar .sep { flex: 1; }
+
+    /* Session picker */
+    .session-picker {
+      position: relative;
+    }
+    .session-picker select {
+      padding: 8px 32px 8px 12px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #202124;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235f6368' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 10px center;
+      appearance: none;
+      cursor: pointer;
+      min-width: 240px;
+    }
+    .session-picker select:focus { outline: none; border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,.15); }
+    .session-picker .refresh-hint {
+      font-size: 11px;
+      color: #5f6368;
+      margin-top: 2px;
+      padding-left: 2px;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s, box-shadow .15s;
+      letter-spacing: 0.1px;
+    }
+    .btn:disabled { opacity: .45; cursor: default; }
+    .btn-primary { background: #1a73e8; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #1765cc; box-shadow: 0 1px 3px rgba(26,115,232,.3); }
+    .btn-outline { background: #fff; color: #1a73e8; border: 1px solid #dadce0; }
+    .btn-outline:hover:not(:disabled) { background: #f1f3f4; }
+    .btn-danger { background: #fff; color: #ea4335; border: 1px solid #dadce0; }
+    .btn-danger:hover:not(:disabled) { background: #fce8e6; }
+    .btn-record { background: #ea4335; color: #fff; }
+    .btn-record:hover:not(:disabled) { background: #d33426; }
+    .btn-record.active { animation: pulse-rec 1.5s infinite; }
+    @keyframes pulse-rec { 0%,100% { box-shadow: 0 0 0 0 rgba(234,67,53,.4); } 50% { box-shadow: 0 0 0 6px rgba(234,67,53,0); } }
+    .btn-freeze { background: #fff; color: #f9ab00; border: 1px solid #f9ab00; }
+    .btn-freeze:hover:not(:disabled) { background: #fef7e0; }
+    .btn-freeze.active { background: #f9ab00; color: #fff; }
+    .btn-freeze.active:hover:not(:disabled) { background: #e8a000; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+
+    /* Toolbar */
+    .toolbar {
+      background: #fff;
+      padding: 8px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #e8eaed;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .toolbar .group { display: flex; align-items: center; gap: 6px; }
+    .toolbar .label { font-size: 11px; color: #5f6368; text-transform: uppercase; letter-spacing: .5px; margin-right: 2px; }
+    .toolbar input[type="range"] { flex: 1; min-width: 120px; accent-color: #1a73e8; }
+    .toolbar select {
+      padding: 5px 24px 5px 8px;
+      border: 1px solid #dadce0;
+      border-radius: 6px;
+      font-size: 12px;
+      background: #fff;
+      appearance: none;
+    }
+    .toolbar .time { font-family: 'Roboto Mono', monospace; font-size: 12px; color: #3c4043; min-width: 105px; text-align: center; }
+    .toolbar .frame-label { font-size: 11px; color: #5f6368; min-width: 85px; }
+
+    /* Viewer area */
+    .viewer-wrap {
+      flex: 1;
+      position: relative;
+      background: #e8eaed;
+      margin: 12px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .viewer-wrap iframe { width: 100%; height: 100%; border: none; background: #fff; }
+    .viewer-wrap .empty {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; color: #5f6368; pointer-events: none;
+    }
+    .viewer-wrap .empty .icon { font-size: 48px; opacity: .5; }
+    .viewer-wrap .empty .msg { font-size: 15px; font-weight: 400; }
+    .viewer-wrap .empty .sub { font-size: 12px; color: #80868b; max-width: 320px; text-align: center; }
+
+    /* Footer */
+    .footer {
+      background: #fff;
+      padding: 0 24px;
+      height: 36px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid #0f3460;
-      flex-wrap: wrap;
-      gap: 0.5rem;
+      border-top: 1px solid #e8eaed;
+      font-size: 11px;
+      color: #5f6368;
+      flex-shrink: 0;
     }
-    header h1 { font-size: 1.1rem; white-space: nowrap; }
-    .controls { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-    .controls input[type="text"] {
-      padding: 0.3rem 0.5rem;
-      border: 1px solid #0f3460;
-      border-radius: 4px;
-      background: #1a1a2e;
-      color: #e0e0e0;
-      font-size: 0.8rem;
-      width: 180px;
-    }
-    .controls button {
-      padding: 0.3rem 0.6rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      white-space: nowrap;
-    }
-    .controls select {
-      padding: 0.3rem 0.4rem;
-      border: 1px solid #0f3460;
-      border-radius: 4px;
-      background: #1a1a2e;
-      color: #e0e0e0;
-      font-size: 0.8rem;
-    }
-    .btn-connect { background: #4caf50; color: #fff; }
-    .btn-disconnect { background: #f44336; color: #fff; }
-    .btn-record { background: #e91e63; color: #fff; }
-    .btn-record.active { background: #f44336; animation: pulse 1s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
-    .btn-play { background: #4caf50; color: #fff; }
-    .btn-pause { background: #ff9800; color: #fff; }
-    .btn-stop { background: #f44336; color: #fff; }
-    .btn-export { background: #2196f3; color: #fff; }
-    .btn-import { background: #9c27b0; color: #fff; }
-    .interaction-toggle {
-      display: flex; align-items: center; gap: 0.3rem;
-      font-size: 0.8rem; cursor: pointer; user-select: none;
-    }
+    .footer .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .footer .dot.on { background: #34a853; }
+    .footer .dot.off { background: #ea4335; }
+    .footer .dot.frozen { background: #f9ab00; }
 
-    /* --- toolbar --- */
-    .toolbar {
-      background: #16213e;
-      padding: 0.35rem 1rem;
-      border-bottom: 1px solid #0f3460;
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-      flex-wrap: wrap;
-      font-size: 0.8rem;
+    /* Interaction toggle */
+    .toggle-row { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; user-select: none; }
+    .toggle-switch {
+      width: 36px; height: 20px; background: #dadce0; border-radius: 10px;
+      position: relative; transition: background .2s;
     }
-    .toolbar-group {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
+    .toggle-switch::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 16px; height: 16px; background: #fff; border-radius: 50%;
+      transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,.2);
     }
-    .toolbar-group label { font-size: 0.75rem; color: #888; margin-right: 0.25rem; }
-    .toolbar .time-display { font-family: monospace; min-width: 80px; text-align: center; }
-    .toolbar input[type="range"] {
-      width: 180px; accent-color: #4caf50;
-    }
-    .toolbar button { font-size: 0.75rem; padding: 0.2rem 0.45rem; }
-
-    /* --- viewer --- */
-    .viewer-container {
-      flex: 1;
-      position: relative;
-      background: #222;
-      overflow: hidden;
-    }
-    .viewer-container iframe {
-      width: 100%; height: 100%; border: none; background: #fff;
-    }
-    .placeholder {
-      position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      color: #666; font-size: 1.2rem; pointer-events: none;
-    }
-
-    /* --- footer --- */
-    .status-bar {
-      padding: 0.3rem 1rem;
-      background: #16213e;
-      border-top: 1px solid #0f3460;
-      display: flex; justify-content: space-between;
-      font-size: 0.75rem; color: #888;
-    }
-    .status-bar .connected { color: #4caf50; }
-    .status-bar .disconnected { color: #f44336; }
-    .status-bar .recording { color: #e91e63; }
-    .log-panel {
-      max-height: 120px; overflow-y: auto;
-      background: #0d0d1a; padding: 0.35rem 1rem;
-      font-family: monospace; font-size: 0.7rem; color: #aaa;
-      border-top: 1px solid #0f3460;
-    }
-    .log-panel .log-line { padding: 1px 0; }
+    .toggle-row input:checked + .toggle-switch { background: #1a73e8; }
+    .toggle-row input:checked + .toggle-switch::after { transform: translateX(16px); }
+    .toggle-row input { display: none; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>🖥️ Admin Viewer</h1>
-    <div class="controls">
-      <input type="text" id="sessionIdInput" placeholder="Session ID">
-      <button class="btn-connect" id="connectBtn">Connect</button>
-      <button class="btn-disconnect" id="disconnectBtn" disabled>Disconnect</button>
-      <label class="interaction-toggle">
-        <input type="checkbox" id="interactionToggle"> Interact
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <span class="logo">Remote<span>Agent</span></span>
+    <span class="sep"></span>
+    <div class="session-picker">
+      <select id="sessionSelect">
+        <option value="">— Choose an active session —</option>
+      </select>
+      <div class="refresh-hint">Auto-refreshes every 5s</div>
+    </div>
+    <button class="btn btn-primary" id="connectBtn">Connect</button>
+    <button class="btn btn-danger" id="disconnectBtn" disabled>Disconnect</button>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar" id="toolbar">
+    <div class="group">
+      <span class="label">Session</span>
+      <button class="btn btn-outline btn-sm" id="freezeBtn" disabled title="Pause live updates to inspect the page">🧊 Freeze</button>
+      <label class="toggle-row" title="Allow clicking/typing on the student page">
+        <input type="checkbox" id="interactionToggle">
+        <span class="toggle-switch"></span>
+        <span style="font-size:12px;">Interact</span>
       </label>
     </div>
-  </header>
-
-  <!-- Recording & Playback toolbar -->
-  <div class="toolbar" id="toolbar">
-    <!-- Recording -->
-    <div class="toolbar-group">
-      <label>📼</label>
-      <button class="btn-record" id="recordBtn" disabled>⏺ Rec</button>
-      <button class="btn-export" id="exportBtn" disabled>⬇ Export</button>
-      <button class="btn-import" id="importBtn">⬆ Import</button>
+    <span style="color:#dadce0;">|</span>
+    <div class="group">
+      <span class="label">Record</span>
+      <button class="btn btn-record btn-sm" id="recordBtn" disabled>⏺ Rec</button>
+      <button class="btn btn-outline btn-sm" id="exportBtn" disabled>⬇ Export</button>
+      <button class="btn btn-outline btn-sm" id="importBtn">⬆ Import</button>
       <input type="file" id="importFile" accept=".json" style="display:none">
     </div>
-    <!-- Playback -->
-    <div class="toolbar-group">
-      <label>▶</label>
-      <button class="btn-play" id="playBtn" disabled>Play</button>
-      <button class="btn-pause" id="pauseBtn" disabled>Pause</button>
-      <button class="btn-stop" id="stopBtn" disabled>Stop</button>
+    <span style="color:#dadce0;">|</span>
+    <div class="group">
+      <span class="label">Playback</span>
+      <button class="btn btn-outline btn-sm" id="playBtn" disabled>▶ Play</button>
+      <button class="btn btn-outline btn-sm" id="pauseBtn" disabled>⏸ Pause</button>
+      <button class="btn btn-outline btn-sm" id="stopBtn" disabled>⏹ Stop</button>
       <select id="speedSelect">
         <option value="0.25">0.25x</option>
         <option value="0.5">0.5x</option>
@@ -162,124 +220,210 @@
         <option value="4">4x</option>
       </select>
     </div>
-    <!-- Seek bar -->
-    <div class="toolbar-group" style="flex:1;min-width:150px;">
-      <input type="range" id="seekBar" min="0" max="100" value="0" style="width:100%;">
+    <div class="group" style="flex:1; min-width:100px;">
+      <input type="range" id="seekBar" min="0" max="100" value="0" style="width:100%">
     </div>
-    <div class="toolbar-group">
-      <span class="time-display" id="timeDisplay">00:00 / 00:00</span>
+    <span class="time" id="timeDisplay">00:00 / 00:00</span>
+    <span class="frame-label" id="frameLabel"></span>
+  </div>
+
+  <!-- Viewer -->
+  <div class="viewer-wrap" id="viewerWrap">
+    <div class="empty" id="emptyState">
+      <span class="icon">🖥️</span>
+      <span class="msg">Select a session to begin</span>
+      <span class="sub">Active sessions appear in the dropdown above. Open a student page to start a new session.</span>
     </div>
   </div>
 
-  <div class="viewer-container" id="viewerContainer">
-    <div class="placeholder" id="placeholder">
-      Enter a Session ID and click Connect to start viewing
-    </div>
-  </div>
-
-  <div class="status-bar">
-    <span id="connectionStatus" class="disconnected">● Disconnected</span>
-    <span id="recordingStatus"></span>
-    <span id="playbackStatus"></span>
-    <span id="sessionInfo">No active session</span>
-    <span id="msgCount">Messages: 0</span>
-  </div>
-
-  <div class="log-panel" id="logPanel">
-    <div class="log-line">Waiting for connection...</div>
+  <!-- Footer -->
+  <div class="footer">
+    <span><span class="dot off" id="statusDot"></span><span id="connectionLabel">Disconnected</span></span>
+    <span id="sessionLabel">No session</span>
+    <span id="msgLabel">Messages: 0</span>
   </div>
 
   <script type="module">
     import { ViewerAgent, SessionRecorder, SessionPlayer, DOMReconstructor } from '../src/index.js';
 
-    // ---- DOM refs ----
-    const sessionIdInput = document.getElementById('sessionIdInput');
+    // DOM refs
+    const sessionSelect = document.getElementById('sessionSelect');
     const connectBtn = document.getElementById('connectBtn');
     const disconnectBtn = document.getElementById('disconnectBtn');
+    const freezeBtn = document.getElementById('freezeBtn');
     const interactionToggle = document.getElementById('interactionToggle');
-    const viewerContainer = document.getElementById('viewerContainer');
-    const placeholder = document.getElementById('placeholder');
-    const connectionStatus = document.getElementById('connectionStatus');
-    const recordingStatus = document.getElementById('recordingStatus');
-    const playbackStatus = document.getElementById('playbackStatus');
-    const sessionInfo = document.getElementById('sessionInfo');
-    const msgCount = document.getElementById('msgCount');
-    const logPanel = document.getElementById('logPanel');
-
-    // Recording controls
+    const viewerWrap = document.getElementById('viewerWrap');
+    const emptyState = document.getElementById('emptyState');
+    const statusDot = document.getElementById('statusDot');
+    const connectionLabel = document.getElementById('connectionLabel');
+    const sessionLabel = document.getElementById('sessionLabel');
+    const msgLabel = document.getElementById('msgLabel');
     const recordBtn = document.getElementById('recordBtn');
     const exportBtn = document.getElementById('exportBtn');
     const importBtn = document.getElementById('importBtn');
     const importFile = document.getElementById('importFile');
-
-    // Playback controls
     const playBtn = document.getElementById('playBtn');
     const pauseBtn = document.getElementById('pauseBtn');
     const stopBtn = document.getElementById('stopBtn');
     const speedSelect = document.getElementById('speedSelect');
     const seekBar = document.getElementById('seekBar');
     const timeDisplay = document.getElementById('timeDisplay');
+    const frameLabel = document.getElementById('frameLabel');
 
-    // ---- State ----
     let viewer = null;
     let recorder = null;
     let player = null;
     let messageCount = 0;
     let seekBarDragging = false;
-
-    // ---- Helpers ----
-    function log(msg) {
-      const line = document.createElement('div');
-      line.className = 'log-line';
-      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-      logPanel.appendChild(line);
-      logPanel.scrollTop = logPanel.scrollHeight;
-    }
-
-    function updateMessageCount() {
-      messageCount++;
-      msgCount.textContent = `Messages: ${messageCount}`;
-    }
+    let sessionPollTimer = null;
 
     function formatTime(ms) {
       const s = Math.floor(ms / 1000);
-      const m = Math.floor(s / 60);
-      const sec = s % 60;
-      return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+      return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
     }
 
-    // ---- Recording ----
-    recordBtn.addEventListener('click', () => {
-      if (!viewer || !viewer._connection) return;
+    function setConnected(connected, frozen = false) {
+      if (connected) {
+        statusDot.className = frozen ? 'dot frozen' : 'dot on';
+        connectionLabel.textContent = frozen ? 'Frozen' : 'Connected';
+      } else {
+        statusDot.className = 'dot off';
+        connectionLabel.textContent = 'Disconnected';
+      }
+    }
 
-      if (recorder && recorder.isRecording) {
+    // ---- Session list polling ----
+    async function refreshSessionList() {
+      try {
+        const res = await fetch('/api/sessions');
+        const data = await res.json();
+        const sessions = data.sessions || [];
+        const currentVal = sessionSelect.value;
+
+        // Rebuild dropdown
+        sessionSelect.innerHTML = '<option value="">— Choose an active session —</option>';
+        for (const s of sessions) {
+          const label = `${s.id} ${s.clientConnected ? '🟢' : '⚪'} ${s.viewerConnected ? '(viewer attached)' : ''}`;
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = label;
+          if (s.id === currentVal) opt.selected = true;
+          sessionSelect.appendChild(opt);
+        }
+      } catch { /* server not running yet */ }
+    }
+
+    refreshSessionList();
+    sessionPollTimer = setInterval(refreshSessionList, 5000);
+
+    // ---- Connect ----
+    connectBtn.addEventListener('click', async () => {
+      const sid = sessionSelect.value;
+      if (!sid) return;
+
+      if (viewer) { viewer.stop(); viewer = null; }
+      if (recorder) { recorder.stop(); recordBtn.textContent = '⏺ Rec'; recordBtn.classList.remove('active'); }
+      if (player) { player.stop(); }
+
+      const existing = viewerWrap.querySelector('iframe');
+      if (existing) existing.remove();
+
+      viewer = new ViewerAgent({
+        sessionId: sid,
+        serverUrl: `ws://${window.location.host}`,
+        container: viewerWrap,
+        allowInteraction: true,
+        allowScripts: true,
+      });
+
+      recorder = new SessionRecorder();
+
+      viewer._connection.on('message', (msg) => {
+        messageCount++;
+        msgLabel.textContent = `Messages: ${messageCount}`;
+        if (recorder) recorder.record(msg);
+      });
+
+      try {
+        await viewer.start();
+        emptyState.style.display = 'none';
+        setConnected(true);
+        sessionLabel.textContent = `Session: ${sid}`;
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = false;
+        freezeBtn.disabled = false;
+        recordBtn.disabled = false;
+        clearInterval(sessionPollTimer); // stop polling while connected
+      } catch (err) {
+        setConnected(false);
+      }
+    });
+
+    // ---- Disconnect ----
+    disconnectBtn.addEventListener('click', () => {
+      if (recorder?.isRecording) {
         recorder.stop();
         recordBtn.textContent = '⏺ Rec';
         recordBtn.classList.remove('active');
-        recordingStatus.textContent = '';
         exportBtn.disabled = false;
-        enablePlayback();
-        log(`⏹ Recording stopped (${recorder.frameCount} frames, ${formatTime(recorder.duration)})`);
+      }
+      if (player) player.stop();
+      if (viewer) { viewer.stop(); viewer = null; }
+
+      const existing = viewerWrap.querySelector('iframe');
+      if (existing) existing.remove();
+      emptyState.style.display = 'flex';
+      setConnected(false);
+      sessionLabel.textContent = 'No session';
+      connectBtn.disabled = false;
+      disconnectBtn.disabled = true;
+      freezeBtn.disabled = true;
+      recordBtn.disabled = true;
+      playBtn.disabled = true;
+      pauseBtn.disabled = true;
+      stopBtn.disabled = true;
+      sessionPollTimer = setInterval(refreshSessionList, 5000);
+      refreshSessionList();
+      frameLabel.textContent = '';
+    });
+
+    // ---- Freeze ----
+    freezeBtn.addEventListener('click', () => {
+      if (!viewer) return;
+      const frozen = !viewer.isFrozen;
+      viewer.setFrozen(frozen);
+      freezeBtn.textContent = frozen ? '🧊 Live' : '🧊 Freeze';
+      freezeBtn.classList.toggle('active', frozen);
+      setConnected(true, frozen);
+    });
+
+    // ---- Interaction toggle ----
+    interactionToggle.addEventListener('change', () => {
+      if (viewer) viewer.setInteractionMode(interactionToggle.checked);
+    });
+
+    // ---- Recording ----
+    recordBtn.addEventListener('click', () => {
+      if (!viewer) return;
+      if (recorder?.isRecording) {
+        recorder.stop();
+        recordBtn.textContent = '⏺ Rec';
+        recordBtn.classList.remove('active');
+        exportBtn.disabled = false;
+        frameLabel.textContent = `${recorder.frameCount} frames`;
       } else {
         if (!recorder) recorder = new SessionRecorder();
-        recorder.start(sessionIdInput.value.trim());
+        recorder.start(sessionSelect.value);
         recordBtn.textContent = '⏹ Stop';
         recordBtn.classList.add('active');
-        recordingStatus.textContent = '🔴 Recording';
-        recordingStatus.className = 'recording';
         exportBtn.disabled = true;
         disablePlayback();
-        log('⏺ Recording started');
       }
     });
 
     exportBtn.addEventListener('click', () => {
-      if (!recorder || recorder.frameCount === 0) {
-        log('⚠️ Nothing to export');
-        return;
-      }
+      if (!recorder || recorder.frameCount === 0) return;
       recorder.download();
-      log(`📥 Exported ${recorder.frameCount} frames`);
     });
 
     importBtn.addEventListener('click', () => importFile.click());
@@ -290,50 +434,38 @@
       try {
         if (!recorder) recorder = new SessionRecorder();
         await recorder.loadFromFile(file);
-        log(`📂 Imported recording: ${recorder.frameCount} frames, ${formatTime(recorder.duration)}`);
 
-        // If no viewer is active, create the iframe + reconstructor for offline playback
         if (!viewer) {
-          const existingIframe = viewerContainer.querySelector('iframe');
-          if (existingIframe) existingIframe.remove();
+          const existing = viewerWrap.querySelector('iframe');
+          if (existing) existing.remove();
           const iframe = document.createElement('iframe');
           iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts');
           iframe.style.cssText = 'width:100%;height:100%;border:none;background:#fff;';
-          viewerContainer.appendChild(iframe);
-          // Build reconstructor directly — no ViewerAgent needed for playback
-          viewer = {
-            _reconstructor: new DOMReconstructor(iframe, { allowScripts: true }),
-            _iframe: iframe,
-          };
-          placeholder.style.display = 'none';
-          connectionStatus.textContent = '● Offline playback';
-          connectionStatus.className = 'connected';
-          sessionInfo.textContent = `Recording: ${recorder._sessionId || file.name}`;
+          viewerWrap.appendChild(iframe);
+          const recon = new DOMReconstructor(iframe, { allowScripts: true });
+          viewer = { _reconstructor: recon, _iframe: iframe, isFrozen: false };
+          emptyState.style.display = 'none';
+          setConnected(true, false);
+          sessionLabel.textContent = `Recording: ${recorder._sessionId || file.name}`;
           connectBtn.disabled = true;
           disconnectBtn.disabled = true;
+          freezeBtn.disabled = true;
           recordBtn.disabled = true;
-          recordingStatus.textContent = '';
         }
 
         enablePlayback();
         seekBar.max = recorder.duration;
         seekBar.value = 0;
         timeDisplay.textContent = `00:00 / ${formatTime(recorder.duration)}`;
-        playbackStatus.textContent = '📼 Loaded';
-      } catch (err) {
-        log(`❌ Import failed: ${err.message}`);
-      }
+        frameLabel.textContent = `${recorder.frameCount} frames`;
+      } catch (err) { /* ignore */ }
       importFile.value = '';
     });
 
     // ---- Playback ----
     function enablePlayback() {
       const recon = viewer?._reconstructor;
-      if (!recon) {
-        log('⚠️ No viewer or iframe available for playback');
-        return;
-      }
-
+      if (!recon) return;
       if (!player) {
         player = new SessionPlayer(recon, {
           onTick: (info) => {
@@ -342,188 +474,64 @@
               timeDisplay.textContent = `${formatTime(info.elapsed)} / ${formatTime(info.duration)}`;
             }
           },
-          onEnd: () => {
-            playBtn.disabled = false;
-            pauseBtn.disabled = true;
-            stopBtn.disabled = true;
-            playbackStatus.textContent = '⏹ Ended';
-            log('▶ Playback ended');
-          },
-          onStateChange: (info) => {
-            playbackStatus.textContent = info.state === 'playing'
-              ? `▶ Playing ${info.speed}x`
-              : info.state === 'paused'
-                ? '⏸ Paused'
-                : '⏹ Stopped';
-          },
+          onEnd: () => { playBtn.disabled = false; pauseBtn.disabled = true; },
+          onStateChange: () => {},
         });
       }
-
       playBtn.disabled = false;
       pauseBtn.disabled = true;
       stopBtn.disabled = true;
     }
 
     function disablePlayback() {
-      playBtn.disabled = true;
-      pauseBtn.disabled = true;
-      stopBtn.disabled = true;
+      playBtn.disabled = true; pauseBtn.disabled = true; stopBtn.disabled = true;
     }
 
     playBtn.addEventListener('click', () => {
-      if (!player || !player.hasRecording) {
-        // Try to load from recorder
-        if (recorder && recorder.frameCount > 0) {
-          player.load(recorder.export());
-        } else {
-          log('⚠️ No recording to play');
-          return;
-        }
+      if (!player?.hasRecording && recorder?.frameCount > 0) {
+        player?.load(recorder.export());
       }
-      const speed = parseFloat(speedSelect.value);
-      player.play(speed);
-      playBtn.disabled = true;
-      pauseBtn.disabled = false;
-      stopBtn.disabled = false;
-      log(`▶ Playing at ${speed}x`);
+      if (!player?.hasRecording) return;
+      player.play(parseFloat(speedSelect.value));
+      playBtn.disabled = true; pauseBtn.disabled = false; stopBtn.disabled = false;
     });
 
     pauseBtn.addEventListener('click', () => {
-      if (player) {
-        player.pause();
-        playBtn.disabled = false;
-        pauseBtn.disabled = true;
-      }
+      player?.pause();
+      playBtn.disabled = false; pauseBtn.disabled = true;
     });
 
     stopBtn.addEventListener('click', () => {
-      if (player) {
-        player.stop();
-        playBtn.disabled = false;
-        pauseBtn.disabled = true;
-        stopBtn.disabled = true;
-        seekBar.value = 0;
-        timeDisplay.textContent = `00:00 / ${formatTime(player.duration)}`;
-      }
+      player?.stop();
+      playBtn.disabled = false; pauseBtn.disabled = true; stopBtn.disabled = true;
+      seekBar.value = 0;
+      timeDisplay.textContent = `00:00 / ${formatTime(player.duration)}`;
     });
 
     speedSelect.addEventListener('change', () => {
-      if (player) {
-        player.setSpeed(parseFloat(speedSelect.value));
-      }
-    });
-
-    seekBar.addEventListener('input', () => {
-      if (!player || !player.hasRecording) return;
-      const ms = parseFloat(seekBar.value);
-      timeDisplay.textContent = `${formatTime(ms)} / ${formatTime(player.duration)}`;
-    });
-
-    seekBar.addEventListener('change', () => {
-      if (!player) return;
-      const ms = parseFloat(seekBar.value);
-      player.seek(ms);
-      seekBarDragging = false;
-      timeDisplay.textContent = `${formatTime(ms)} / ${formatTime(player.duration)}`;
+      player?.setSpeed(parseFloat(speedSelect.value));
     });
 
     seekBar.addEventListener('mousedown', () => { seekBarDragging = true; });
+    seekBar.addEventListener('input', () => {
+      if (!player?.hasRecording) return;
+      const ms = parseFloat(seekBar.value);
+      timeDisplay.textContent = `${formatTime(ms)} / ${formatTime(player.duration)}`;
+    });
+    seekBar.addEventListener('change', () => {
+      if (!player) return;
+      player.seek(parseFloat(seekBar.value));
+      seekBarDragging = false;
+    });
     seekBar.addEventListener('mouseup', () => {
-      if (player && player.hasRecording) {
-        seekBar.dispatchEvent(new Event('change'));
-      }
+      if (player?.hasRecording) seekBar.dispatchEvent(new Event('change'));
     });
 
-    // ---- Connect / Disconnect ----
-    connectBtn.addEventListener('click', async () => {
-      const sid = sessionIdInput.value.trim();
-      if (!sid) { log('⚠️ Please enter a Session ID'); return; }
-
-      if (viewer) { viewer.stop(); viewer = null; }
-      if (recorder) { recorder.stop(); recordBtn.textContent = '⏺ Rec'; recordBtn.classList.remove('active'); }
-      if (player) { player.stop(); }
-
-      const existingIframe = viewerContainer.querySelector('iframe');
-      if (existingIframe) existingIframe.remove();
-
-      const serverUrl = `ws://${window.location.host}`;
-
-      viewer = new ViewerAgent({
-        sessionId: sid,
-        serverUrl,
-        container: viewerContainer,
-        allowInteraction: true,
-        allowScripts: true,
-      });
-
-      // Init recorder (but don't start)
-      recorder = new SessionRecorder();
-
-      // Wire recorder to capture all incoming messages
-      viewer._connection.on('message', (msg) => {
-        updateMessageCount();
-        if (recorder) recorder.record(msg);
-      });
-
-      try {
-        await viewer.start();
-        placeholder.style.display = 'none';
-        connectionStatus.textContent = '● Connected';
-        connectionStatus.className = 'connected';
-        sessionInfo.textContent = `Session: ${sid}`;
-        connectBtn.disabled = true;
-        disconnectBtn.disabled = false;
-        recordBtn.disabled = false;
-        log(`✅ Connected to session: ${sid}`);
-        log('💡 Press ⏺ Rec to start recording, then export for later replay');
-      } catch (err) {
-        log(`❌ Connection failed: ${err.message}`);
-        connectionStatus.textContent = '● Error';
-        connectionStatus.className = 'disconnected';
-      }
-    });
-
-    disconnectBtn.addEventListener('click', () => {
-      if (recorder && recorder.isRecording) {
-        recorder.stop();
-        recordBtn.textContent = '⏺ Rec';
-        recordBtn.classList.remove('active');
-        recordingStatus.textContent = '';
-        exportBtn.disabled = false;
-      }
-      if (player) player.stop();
-      if (viewer) { viewer.stop(); viewer = null; }
-
-      const existingIframe = viewerContainer.querySelector('iframe');
-      if (existingIframe) existingIframe.remove();
-      placeholder.style.display = 'flex';
-      connectionStatus.textContent = '● Disconnected';
-      connectionStatus.className = 'disconnected';
-      sessionInfo.textContent = 'No active session';
-      connectBtn.disabled = false;
-      disconnectBtn.disabled = true;
-      recordBtn.disabled = true;
-      disablePlayback();
-      playbackStatus.textContent = '';
-      recordingStatus.textContent = '';
-      log('🔌 Disconnected');
-    });
-
-    interactionToggle.addEventListener('change', () => {
-      if (viewer) {
-        viewer.setInteractionMode(interactionToggle.checked);
-        log(interactionToggle.checked ? '🟢 Interaction mode ENABLED' : '🔴 Interaction mode DISABLED');
-      }
-    });
-
-    // URL param convenience
-    const urlSessionId = new URLSearchParams(window.location.search).get('sessionId');
-    if (urlSessionId) {
-      sessionIdInput.value = urlSessionId;
-      log(`📋 Session ID from URL: ${urlSessionId}`);
+    // URL param
+    const urlSid = new URLSearchParams(window.location.search).get('sessionId');
+    if (urlSid) {
+      sessionSelect.value = urlSid;
     }
-
-    log('🚀 Admin viewer ready');
   </script>
 </body>
 </html>
