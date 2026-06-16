@@ -21,7 +21,7 @@
       justify-content: space-between;
     }
     header h1 { font-size: 1.25rem; }
-    .status { font-size: 0.85rem; opacity: 0.9; }
+    .status { font-size: 0.85rem; opacity: 0.9; color: #fff; }
     main {
       max-width: 800px;
       margin: 2rem auto;
@@ -193,11 +193,13 @@
       .then(() => {
         statusEl.textContent = `Agent: connected (${sessionId})`;
         statusEl.style.background = '#e8f5e9';
+        statusEl.style.color = '#1b5e20';
         console.log('[Student] Agent started');
       })
       .catch((err) => {
         statusEl.textContent = `Agent: error — ${err.message}`;
         statusEl.style.background = '#ffebee';
+	        statusEl.style.color = '#b71c1c';
         console.error('[Student] Agent error:', err);
       });
 

@@ -267,6 +267,10 @@
           },
         });
 
+        // Load the recording data into the player — this is what was missing.
+        // Without load(), the player's timeline is empty and play() is a no-op.
+        player.load(recorder.export());
+
         const dur = recorder.duration;
         seekBar.max = dur;
         seekBar.value = 0;
